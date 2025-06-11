@@ -92,7 +92,9 @@
           ffmpeg.FS("writeFile", inputName, await fetchFile(file));
 
           if (conversionType === "mp3mp4") {
-            ffmpeg.FS("writeFile", "fondo.png", await fetchFile("fondo.png"));
+            const fondoBlob = await fetch("fondo.png").then(res => res.blob());
+          const fondoArrayBuffer = await fondoBlob.arrayBuffer();
+          ffmpeg.FS("writeFile", "fondo.png", new Uint8Array(fondoArrayBuffer));
             await ffmpeg.run("-loop", "1", "-i", "fondo.png", "-i", inputName, "-c:v", "libx264", "-c:a", "aac", "-shortest", outputName);
           } else {
             await ffmpeg.run("-i", inputName, "-q:a", "0", "-map", "a", outputName);
