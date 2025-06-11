@@ -3,13 +3,161 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5599413627421139"
-     crossorigin="anonymous"></script>
   <meta name="description" content="Convierte tus archivos de forma rápida, segura y sin subirlos a servidores. BlueConvert transforma MP3, MP4, PDF, DOCX, JPG y PNG directamente desde tu navegador. Gratis y privado.">
   <title>BlueConvert - Conversor online gratuito de MP3, MP4, PDF, DOCX, JPG y PNG</title>
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f8ff; margin: 0; }
+    header { background: #0066cc; color: white; text-align: left; padding: 30px 40px; font-size: 2rem; font-weight: bold; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; padding: 30px; }
+    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; cursor: pointer; transition: transform 0.2s; }
+    .card:hover { transform: scale(1.05); }
+    .card span { font-size: 2rem; display: block; margin-bottom: 10px; }
+    .uploader, .progress-bar, .message { text-align: center; padding: 10px; }
+    input[type="file"] { margin: 10px 0; }
+    button { background: #0066cc; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+    .progress-bar { width: 80%; height: 20px; background: #ddd; border-radius: 10px; margin: 20px auto; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; width: 0%; background: #5aa9e6; transition: width 0.3s; }
+    .intro img { display: block; margin: -35px auto 0; width: 45%; border-radius: 12px; }
+    .intro h2 { text-align: center; font-size: 1.8rem; font-weight: bold; margin-top: -40px; }
+    .intro p { text-align: center; max-width: 800px; margin: 20px auto; font-size: 1.1rem; }
+  </style>
 </head>
 <body>
-  <h1>Versión oficial con AdSense añadida</h1>
-  <p>Este es solo un marcador para asegurar que el script se ha inyectado correctamente.</p>
+  <header>BlueConvert</header>
+
+  <div class="grid">
+    <div class="card" onclick="select('mp3mp4')"><span>🎵→🎥</span>MP3 a MP4</div>
+    <div class="card" onclick="select('mp4mp3')"><span>🎥→🎵</span>MP4 a MP3</div>
+    <div class="card" onclick="select('docxpdf')"><span>📄→📄</span>DOCX a PDF</div>
+    <div class="card" onclick="select('jpgpng')"><span>🖼→🖼</span>JPG a PNG</div>
+    <div class="card" onclick="select('pngpdf')"><span>🖼→📄</span>PNG a PDF</div>
+  </div>
+
+  <div class="uploader" id="panel" style="display:none;">
+    <input type="file" id="fileInput" />
+    <br />
+    <button onclick="convert()">Convertir</button>
+    <div class="progress-bar" id="progress"><div class="progress-fill" id="fill"></div></div>
+    <div class="message" id="message"></div>
+  </div>
+
+  <div class="intro">
+    <img src="A_flat-style_digital_illustration_promotes_BlueCon.png" alt="¿Qué es BlueConvert?" />
+    <h2>¿Qué somos?</h2>
+    <p>
+      BlueConvert es una herramienta gratuita y segura para convertir archivos como MP3 a MP4,
+      MP4 a MP3, imágenes JPG a PNG y documentos DOCX a PDF. Todo ocurre en tu navegador,
+      sin necesidad de subir nada. Rápido, privado y sin límites.
+    </p>
+  </div>
+
+  <script>
+    let conversionType = '';
+    let ffmpegLoaded = false;
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    function select(type) {
+      conversionType = type;
+      document.getElementById('panel').style.display = 'block';
+      document.getElementById('message').innerText = '';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('progress').style.display = 'none';
+      document.getElementById('fill').style.width = '0%';
+    }
+
+    async function convert() {
+      const file = document.getElementById('fileInput').files[0];
+      const message = document.getElementById('message');
+      const progress = document.getElementById('progress');
+      const fill = document.getElementById('fill');
+      if (!file) return message.innerText = "Por favor, selecciona un archivo.";
+
+      progress.style.display = 'block';
+      fill.style.width = '10%';
+      message.innerText = "Procesando...";
+
+      try {
+        if (conversionType === "mp3mp4" || conversionType === "mp4mp3") {
+          if (!ffmpegLoaded) {
+            await ffmpeg.load(); ffmpegLoaded = true;
+          }
+
+          const inputName = file.name;
+          const outputName = conversionType === "mp4mp3" ? "output.mp3" : "output.mp4";
+
+          ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+          if (conversionType === "mp3mp4") {
+            const fondoBlob = await fetch("fondo.png").then(res => res.blob());
+          const fondoArrayBuffer = await fondoBlob.arrayBuffer();
+          ffmpeg.FS("writeFile", "fondo.png", new Uint8Array(fondoArrayBuffer));
+            await ffmpeg.run("-loop", "1", "-i", "fondo.png", "-i", inputName, "-c:v", "libx264", "-c:a", "aac", "-shortest", outputName);
+          } else {
+            await ffmpeg.run("-i", inputName, "-q:a", "0", "-map", "a", outputName);
+          }
+
+          const data = ffmpeg.FS("readFile", outputName);
+          const blob = new Blob([data.buffer], { type: conversionType === "mp4mp3" ? "audio/mp3" : "video/mp4" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = outputName;
+          a.click();
+          fill.style.width = '100%';
+          message.innerText = "Conversión completada.";
+        }
+
+        else if (conversionType === "docxpdf") {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            mammoth.convertToHtml({ arrayBuffer: e.target.result }).then(result => {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF();
+              doc.text(result.value.replace(/<[^>]+>/g, ""), 10, 10);
+              doc.save("output.pdf");
+              fill.style.width = '100%';
+              message.innerText = "Conversión completada.";
+            });
+          };
+          reader.readAsArrayBuffer(file);
+        }
+
+        else if (conversionType === "jpgpng" || conversionType === "pngpdf") {
+          const img = new Image();
+          img.onload = function () {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+
+            if (conversionType === "jpgpng") {
+              canvas.toBlob(function (blob) {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "output.png";
+                a.click();
+                fill.style.width = '100%';
+                message.innerText = "Conversión completada.";
+              }, "image/png");
+            } else {
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF();
+              pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, 180, 160);
+              pdf.save("output.pdf");
+              fill.style.width = '100%';
+              message.innerText = "Conversión completada.";
+            }
+          };
+          img.src = URL.createObjectURL(file);
+        }
+
+      } catch (e) {
+        message.innerText = "Error en la conversión.";
+      }
+    }
+  </script>
 </body>
 </html>
