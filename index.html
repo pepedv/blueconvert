@@ -176,5 +176,83 @@
       }
     }
   </script>
+<section style="max-width: 900px; margin: 150px auto 100px; padding: 20px; font-family: sans-serif;">
+  <h2 style="text-align: center; color: #0066cc;">Preguntas frecuentes sobre BlueConvert</h2>
+  <style>
+    .faq-item {
+      background: #fff;
+      border-radius: 10px;
+      margin: 15px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .faq-question {
+      cursor: pointer;
+      padding: 15px 20px;
+      font-weight: bold;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .faq-answer {
+      padding: 0 20px 15px;
+      color: #444;
+      display: none;
+    }
+    .faq-question span.icon {
+      margin-right: 10px;
+      color: #0066cc;
+      font-size: 1.3rem;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.faq-question').forEach(q => {
+        q.addEventListener('click', () => {
+          const answer = q.nextElementSibling;
+          const visible = answer.style.display === 'block';
+          document.querySelectorAll('.faq-answer').forEach(a => a.style.display = 'none');
+          answer.style.display = visible ? 'none' : 'block';
+        });
+      });
+    });
+  </script>
+
+  <div class="faq-item">
+    <div class="faq-question"><span><span class="icon">❓</span>¿Cómo convertir archivos gratis desde el navegador?</span>▼</div>
+    <div class="faq-answer">
+      Con BlueConvert puedes convertir archivos como MP3, MP4, PDF, JPG o DOCX directamente desde tu navegador sin instalar nada y sin registro.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question"><span><span class="icon">🔒</span>¿Es seguro usar BlueConvert para convertir documentos?</span>▼</div>
+    <div class="faq-answer">
+      Sí. Todos los procesos de conversión ocurren localmente en tu dispositivo. Nada se sube a servidores, lo que garantiza privacidad y seguridad.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question"><span><span class="icon">📱</span>¿Funciona BlueConvert en móviles y tablets?</span>▼</div>
+    <div class="faq-answer">
+      Sí, es totalmente compatible con Android, iOS, Windows, macOS y cualquier dispositivo con navegador actualizado.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question"><span><span class="icon">💾</span>¿Qué formatos de archivo soporta BlueConvert?</span>▼</div>
+    <div class="faq-answer">
+      Actualmente permite convertir MP3 a MP4, MP4 a MP3, DOCX a PDF, JPG a PNG y PNG a PDF. Todo en segundos y gratis.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question"><span><span class="icon">⏱</span>¿Tarda mucho en convertir los archivos?</span>▼</div>
+    <div class="faq-answer">
+      En la mayoría de casos, la conversión es casi instantánea. Algunos archivos como MP3 a MP4 pueden tardar unos segundos dependiendo del tamaño.
+    </div>
+  </div>
+</section>
 </body>
 </html>
