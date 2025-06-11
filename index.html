@@ -21,7 +21,7 @@
     .progress-bar { width: 80%; height: 20px; background: #ddd; border-radius: 10px; margin: 20px auto; overflow: hidden; display: none; }
     .progress-fill { height: 100%; width: 0%; background: #5aa9e6; transition: width 0.3s; }
     .intro img { display: block; margin: -35px auto 0; width: 45%; border-radius: 12px; }
-    .intro h2 { text-align: center; font-size: 1.8rem; font-weight: bold; margin-top: -50px; }
+    .intro h2 { text-align: center; font-size: 1.8rem; font-weight: bold; margin-top: -40px; }
     .intro p { text-align: center; max-width: 800px; margin: 20px auto; font-size: 1.1rem; }
   </style>
 </head>
@@ -54,112 +54,108 @@
     </p>
   </div>
 
-<script>
-  let conversionType = '';
-  let ffmpegLoaded = false;
+  <script>
+    let conversionType = '';
+    let ffmpegLoaded = false;
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
 
-  const { createFFmpeg, fetchFile } = FFmpeg;
-  const ffmpeg = createFFmpeg({ log: true });
-
-  async function select(type) {
-    conversionType = type;
-    document.getElementById('panel').style.display = 'block';
-    document.getElementById('message').innerText = '';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('progress').style.display = 'none';
-    document.getElementById('fill').style.width = '0%';
-  }
-
-  async function convert() {
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
-    const message = document.getElementById('message');
-    const progress = document.getElementById('progress');
-    const fill = document.getElementById('fill');
-
-    if (!file) {
-      message.innerText = "Por favor, selecciona un archivo.";
-      return;
+    function select(type) {
+      conversionType = type;
+      document.getElementById('panel').style.display = 'block';
+      document.getElementById('message').innerText = '';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('progress').style.display = 'none';
+      document.getElementById('fill').style.width = '0%';
     }
 
-    progress.style.display = 'block';
-    fill.style.width = '10%';
-    message.innerText = "Procesando...";
+    async function convert() {
+      const file = document.getElementById('fileInput').files[0];
+      const message = document.getElementById('message');
+      const progress = document.getElementById('progress');
+      const fill = document.getElementById('fill');
+      if (!file) return message.innerText = "Por favor, selecciona un archivo.";
 
-    try {
-      if (conversionType === "mp4mp3" || conversionType === "mp3mp4") {
-        if (!ffmpegLoaded) {
-          await ffmpeg.load();
-          ffmpegLoaded = true;
+      progress.style.display = 'block';
+      fill.style.width = '10%';
+      message.innerText = "Procesando...";
+
+      try {
+        if (conversionType === "mp3mp4" || conversionType === "mp4mp3") {
+          if (!ffmpegLoaded) {
+            await ffmpeg.load(); ffmpegLoaded = true;
+          }
+
+          const inputName = file.name;
+          const outputName = conversionType === "mp4mp3" ? "output.mp3" : "output.mp4";
+
+          ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+          if (conversionType === "mp3mp4") {
+            ffmpeg.FS("writeFile", "fondo.png", await fetchFile("fondo.png"));
+            await ffmpeg.run("-loop", "1", "-i", "fondo.png", "-i", inputName, "-c:v", "libx264", "-c:a", "aac", "-shortest", outputName);
+          } else {
+            await ffmpeg.run("-i", inputName, "-q:a", "0", "-map", "a", outputName);
+          }
+
+          const data = ffmpeg.FS("readFile", outputName);
+          const blob = new Blob([data.buffer], { type: conversionType === "mp4mp3" ? "audio/mp3" : "video/mp4" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = outputName;
+          a.click();
+          fill.style.width = '100%';
+          message.innerText = "Conversión completada.";
         }
 
-        const inputName = file.name;
-        const outputName = conversionType === "mp4mp3" ? "output.mp3" : "output.mp4";
-
-        ffmpeg.FS("writeFile", inputName, await fetchFile(file));
-        fill.style.width = '30%';
-        await ffmpeg.run("-loop", "1", "-i", "fondo.png", "-i", inputName, "-c:v", "libx264", "-c:a", "aac", "-shortest", outputName);
-        fill.style.width = '70%';
-
-        const data = ffmpeg.FS("readFile", outputName);
-        const blob = new Blob([data.buffer], { type: conversionType === "mp4mp3" ? "audio/mp3" : "video/mp4" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = outputName;
-        link.click();
-        fill.style.width = '100%';
-        message.innerText = "Conversión completada.";
-      }
-
-      else if (conversionType === "docxpdf") {
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-          const arrayBuffer = e.target.result;
-          mammoth.convertToHtml({ arrayBuffer: arrayBuffer }).then(function (result) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text(result.value.replace(/<[^>]+>/g, ""), 10, 10);
-            doc.save("output.pdf");
-            fill.style.width = '100%';
-            message.innerText = "Conversión completada.";
-          });
-        };
-        reader.readAsArrayBuffer(file);
-      }
-
-      else if (conversionType === "jpgpng" || conversionType === "pngpdf") {
-        const img = new Image();
-        img.onload = function () {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          canvas.getContext("2d").drawImage(img, 0, 0);
-
-          if (conversionType === "jpgpng") {
-            canvas.toBlob(function (blob) {
-              const link = document.createElement("a");
-              link.href = URL.createObjectURL(blob);
-              link.download = "output.png";
-              link.click();
+        else if (conversionType === "docxpdf") {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            mammoth.convertToHtml({ arrayBuffer: e.target.result }).then(result => {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF();
+              doc.text(result.value.replace(/<[^>]+>/g, ""), 10, 10);
+              doc.save("output.pdf");
               fill.style.width = '100%';
               message.innerText = "Conversión completada.";
-            }, "image/png");
-          } else {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, 180, 160);
-            pdf.save("output.pdf");
-            fill.style.width = '100%';
-            message.innerText = "Conversión completada.";
-          }
-        };
-        img.src = URL.createObjectURL(file);
-      }
+            });
+          };
+          reader.readAsArrayBuffer(file);
+        }
 
-    } catch (e) {
-      message.innerText = "Error en la conversión.";
+        else if (conversionType === "jpgpng" || conversionType === "pngpdf") {
+          const img = new Image();
+          img.onload = function () {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+
+            if (conversionType === "jpgpng") {
+              canvas.toBlob(function (blob) {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "output.png";
+                a.click();
+                fill.style.width = '100%';
+                message.innerText = "Conversión completada.";
+              }, "image/png");
+            } else {
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF();
+              pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, 180, 160);
+              pdf.save("output.pdf");
+              fill.style.width = '100%';
+              message.innerText = "Conversión completada.";
+            }
+          };
+          img.src = URL.createObjectURL(file);
+        }
+
+      } catch (e) {
+        message.innerText = "Error en la conversión.";
+      }
     }
-  }
-</script>
+  </script>
 </body>
 </html>
