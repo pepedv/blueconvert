@@ -99,6 +99,7 @@
 <div class="grid">
     <div class="card" onclick="select('mp3mp4')"><span>🎵→🎥</span>MP3 a MP4</div>
     <div class="card" onclick="select('mp4mp3')"><span>🎥→🎵</span>MP4 a MP3</div>
+<div class="card" onclick="select('mp4mov')"><span>🎥→🎞️</span>MP4 a MOV</div>
     <div class="card" onclick="select('docxpdf')"><span>📄→📄</span>DOCX a PDF</div>
     <div class="card" onclick="select('jpgpng')"><span>🖼→🖼</span>JPG a PNG</div>
     <div class="card" onclick="select('pngpdf')"><span>🖼→📄</span>PNG a PDF</div>
@@ -184,7 +185,25 @@
           message.innerText = "Conversión completada.";
         }
 
-        else if (conversionType === "docxpdf") {
+        else if (conversionType === "mp4mov") {
+  if (!ffmpegLoaded) {
+    await ffmpeg.load(); ffmpegLoaded = true;
+  }
+  const inputName = file.name;
+  const outputName = "output.mov";
+  ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+  await ffmpeg.run("-i", inputName, "-c:v", "copy", outputName);
+  const data = ffmpeg.FS("readFile", outputName);
+  const blob = new Blob([data.buffer], { type: "video/quicktime" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = outputName;
+  a.click();
+  fill.style.width = '100%';
+  message.innerText = "Conversión completada.";
+}
+
+else if (conversionType === "docxpdf") {
           const reader = new FileReader();
           reader.onload = function(e) {
             mammoth.convertToHtml({ arrayBuffer: e.target.result }).then(result => {
